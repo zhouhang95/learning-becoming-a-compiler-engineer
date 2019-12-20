@@ -1,3 +1,5 @@
+import copy
+
 class FiniteAutomata:
     def __init__(self):
         self.fa_type = None
@@ -28,7 +30,51 @@ class FiniteAutomata:
 
     def to_dfa(self):
         assert self.fa_type == 'NFA'
-        pass
+
+        def delta(states, char):
+            results = set()
+            for state in states:
+                results.update(map(lambda x: x[1], filter(lambda x: x[0] == state and x[2] == char, self.transitions)))
+            return results
+
+        def epsilon_closure(states):
+            new = set(states)
+            while True:
+                old = new
+                new = copy.copy(old)
+                new.update(delta(old, None))
+                if old == new:
+                    break
+            return new
+        
+        alphabet = set(filter(lambda x: x != None, map(lambda x: x[2], self.transitions)))
+        q_0 = epsilon_closure([0])
+        Q = [q_0]
+        WorkList = [q_0]
+        T = []
+        while WorkList != []:
+            q, WorkList = WorkList[0], WorkList[1:]
+            q_index = Q.index(q)
+            for char in alphabet:
+                t = epsilon_closure(delta(q, char))
+                if t == set():
+                    continue
+                if t not in Q:
+                    Q.append(t)
+                    WorkList.append(t)
+                t_index = Q.index(t)
+                T.append((q_index, t_index, char))
+        
+                
+        dfa = FiniteAutomata()
+        dfa.fa_type = 'DFA'
+        dfa.startstate = 0
+        dfa.states = list(range(len(Q)))
+        dfa.transitions = T
+        for i in range(len(Q)):
+            if self.finalstates[0] in Q[i]:
+                dfa.finalstates.append(i)
+        return dfa
 
     def to_min_dfa(self):
         assert self.fa_type == 'DFA'
@@ -114,15 +160,17 @@ def regex2nfa(regex: str):
     pass
 
 def main():
-    a = FiniteAutomata.base('a')
+
     b = FiniteAutomata.base('b')
-    print(FiniteAutomata.concatention(a, b))
+    c = FiniteAutomata.base('c')
+    b_c = FiniteAutomata.alternation(b, c)
+    b_c_star = FiniteAutomata.kleene_closure(b_c)
     a = FiniteAutomata.base('a')
-    b = FiniteAutomata.base('b')
-    print(FiniteAutomata.alternation(a, b))
-    a = FiniteAutomata.base('a')
-    b = FiniteAutomata.base('b')
-    print(FiniteAutomata.kleene_closure(a))
+    a_b_c_star = FiniteAutomata.concatention(a, b_c_star)
+    print(a_b_c_star)
+    print(a_b_c_star.to_dfa())
+    
+
     
 
 
